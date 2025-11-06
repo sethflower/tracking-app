@@ -38,11 +38,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     setState(() => _accessInfo = info);
   }
 
-  /// формат даты и времени под Киев
+  /// Форматує дату/час у локальну зону пристрою (Київ, якщо вона вибрана)
   String formatDate(String isoString) {
     try {
-      final dt = DateTime.parse(isoString).toUtc().add(const Duration(hours: 2));
-      return DateFormat('dd.MM.yyyy HH:mm:ss').format(dt);
+      final localDate = DateTime.parse(isoString).toLocal();
+      return DateFormat('dd.MM.yyyy HH:mm:ss').format(localDate);
     } catch (_) {
       return isoString;
     }
@@ -59,8 +59,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     try {
-      final uri = Uri.parse('https://tracking-api-b4jb.onrender.com/get_history');
-      final response = await http.get(uri, headers: {'Authorization': 'Bearer $token'});
+      final uri = Uri.parse(
+        'https://tracking-api-b4jb.onrender.com/get_history',
+      );
+      final response = await http.get(
+        uri,
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -79,9 +84,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Помилка зв’язку з сервером: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Помилка зв’язку з сервером: $e')));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -93,26 +98,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     if (_boxidController.text.isNotEmpty) {
       filtered = filtered
-          .where((r) => r['boxid']
-              .toString()
-              .contains(_boxidController.text.trim()))
+          .where(
+            (r) => r['boxid'].toString().contains(_boxidController.text.trim()),
+          )
           .toList();
     }
 
     if (_ttnController.text.isNotEmpty) {
       filtered = filtered
-          .where((r) => r['ttn']
-              .toString()
-              .contains(_ttnController.text.trim()))
+          .where(
+            (r) => r['ttn'].toString().contains(_ttnController.text.trim()),
+          )
           .toList();
     }
 
     if (_userController.text.isNotEmpty) {
       filtered = filtered
-          .where((r) => r['user_name']
-              .toString()
-              .toLowerCase()
-              .contains(_userController.text.trim().toLowerCase()))
+          .where(
+            (r) => r['user_name'].toString().toLowerCase().contains(
+              _userController.text.trim().toLowerCase(),
+            ),
+          )
           .toList();
     }
 
@@ -120,7 +126,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       filtered = filtered.where((r) {
         final dt = DateTime.tryParse(r['datetime'] ?? '');
         if (dt == null) return false;
-        final localDt = dt.toUtc().add(const Duration(hours: 2));
+        final localDt = dt.toLocal();
         return localDt.year == _selectedDate!.year &&
             localDt.month == _selectedDate!.month &&
             localDt.day == _selectedDate!.day;
@@ -131,19 +137,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
       filtered = filtered.where((r) {
         final dt = DateTime.tryParse(r['datetime'] ?? '');
         if (dt == null) return false;
-        final localDt = dt.toUtc().add(const Duration(hours: 2));
+        final localDt = dt.toLocal();
         final time = TimeOfDay.fromDateTime(localDt);
 
         bool afterStart = true;
         bool beforeEnd = true;
 
         if (_startTime != null) {
-          afterStart = time.hour > _startTime!.hour ||
-              (time.hour == _startTime!.hour && time.minute >= _startTime!.minute);
+          afterStart =
+              time.hour > _startTime!.hour ||
+              (time.hour == _startTime!.hour &&
+                  time.minute >= _startTime!.minute);
         }
 
         if (_endTime != null) {
-          beforeEnd = time.hour < _endTime!.hour ||
+          beforeEnd =
+              time.hour < _endTime!.hour ||
               (time.hour == _endTime!.hour && time.minute <= _endTime!.minute);
         }
 
@@ -217,7 +226,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
         title: const Text('Очистити історію?'),
         content: const Text('Ця дія видалить усі записи історії. Ви впевнені?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Скасувати')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Скасувати'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -233,19 +245,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final token = prefs.getString('token');
 
     try {
-      final uri = Uri.parse('https://tracking-api-b4jb.onrender.com/clear_tracking');
-      final response = await http.delete(uri, headers: {'Authorization': 'Bearer $token'});
+      final uri = Uri.parse(
+        'https://tracking-api-b4jb.onrender.com/clear_tracking',
+      );
+      final response = await http.delete(
+        uri,
+        headers: {'Authorization': 'Bearer $token'},
+      );
       if (response.statusCode == 200) {
         setState(() {
           _records.clear();
           _filteredRecords.clear();
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Історію очищено ✅')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Історію очищено ✅')));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не вдалося очистити: ${response.statusCode}')),
+          SnackBar(
+            content: Text('Не вдалося очистити: ${response.statusCode}'),
+          ),
         );
       }
     } catch (_) {
@@ -287,23 +306,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ElevatedButton.icon(
                   onPressed: _pickDate,
                   icon: const Icon(Icons.date_range),
-                  label: Text(_selectedDate == null
-                      ? 'Дата'
-                      : DateFormat('dd.MM.yyyy').format(_selectedDate!)),
+                  label: Text(
+                    _selectedDate == null
+                        ? 'Дата'
+                        : DateFormat('dd.MM.yyyy').format(_selectedDate!),
+                  ),
                 ),
                 ElevatedButton.icon(
                   onPressed: () => _pickTime(true),
                   icon: const Icon(Icons.access_time),
-                  label: Text(_startTime == null
-                      ? 'Початок'
-                      : _startTime!.format(context)),
+                  label: Text(
+                    _startTime == null
+                        ? 'Початок'
+                        : _startTime!.format(context),
+                  ),
                 ),
                 ElevatedButton.icon(
                   onPressed: () => _pickTime(false),
                   icon: const Icon(Icons.timelapse),
-                  label: Text(_endTime == null
-                      ? 'Кінець'
-                      : _endTime!.format(context)),
+                  label: Text(
+                    _endTime == null ? 'Кінець' : _endTime!.format(context),
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: _clearFilters,
@@ -318,61 +341,83 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredRecords.isEmpty
-                    ? const Center(child: Text('Історія порожня'))
-                    : ListView.builder(
-                        itemCount: _filteredRecords.length,
-                        itemBuilder: (context, index) {
-                          final item = _filteredRecords[index];
-                          final hasError = item['note'] != null &&
-                              item['note'].toString().isNotEmpty;
-                          return Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            color: hasError ? const Color(0xFFFFEBEE) : Colors.white,
-                            elevation: 2,
-                            child: ListTile(
-                              leading: const Icon(Icons.qr_code_2),
-                              title: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                ? const Center(child: Text('Історія порожня'))
+                : ListView.builder(
+                    itemCount: _filteredRecords.length,
+                    itemBuilder: (context, index) {
+                      final item = _filteredRecords[index];
+                      final hasError =
+                          item['note'] != null &&
+                          item['note'].toString().isNotEmpty;
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        color: hasError
+                            ? const Color(0xFFFFEBEE)
+                            : Colors.white,
+                        elevation: 2,
+                        child: ListTile(
+                          leading: const Icon(Icons.qr_code_2),
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Row(children: [
-                                    const Icon(Icons.inventory_2, color: Colors.blueGrey, size: 18),
-                                    const SizedBox(width: 6),
-                                    Text('BoxID: ${item['boxid']}',
-                                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                                  ]),
-                                  const SizedBox(height: 4),
-                                  Row(children: [
-                                    const Icon(Icons.local_shipping, color: Colors.teal, size: 18),
-                                    const SizedBox(width: 6),
-                                    Text('TTN: ${item['ttn']}'),
-                                  ]),
+                                  const Icon(
+                                    Icons.inventory_2,
+                                    color: Colors.blueGrey,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'BoxID: ${item['boxid']}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ],
                               ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('👤 ${item['user_name']}'),
-                                    Text('🕓 ${formatDate(item['datetime'])}'),
-                                    if (hasError)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Text(
-                                          item['note'],
-                                          style: const TextStyle(
-                                            color: Colors.redAccent,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.local_shipping,
+                                    color: Colors.teal,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text('TTN: ${item['ttn']}'),
+                                ],
                               ),
+                            ],
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('👤 ${item['user_name']}'),
+                                Text('🕓 ${formatDate(item['datetime'])}'),
+                                if (hasError)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      item['note'],
+                                      style: const TextStyle(
+                                        color: Colors.redAccent,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

@@ -34,8 +34,8 @@ class _ErrorsScreenState extends State<ErrorsScreen> {
 
   String _formatDate(String isoString) {
     try {
-      final dt = DateTime.parse(isoString).toUtc().add(const Duration(hours: 2)); // Київ
-      return DateFormat('dd.MM.yyyy HH:mm:ss').format(dt);
+      final localDate = DateTime.parse(isoString).toLocal();
+      return DateFormat('dd.MM.yyyy HH:mm:ss').format(localDate);
     } catch (_) {
       return isoString;
     }
@@ -52,8 +52,13 @@ class _ErrorsScreenState extends State<ErrorsScreen> {
     }
 
     try {
-      final uri = Uri.parse('https://tracking-api-b4jb.onrender.com/get_errors');
-      final response = await http.get(uri, headers: {'Authorization': 'Bearer $token'});
+      final uri = Uri.parse(
+        'https://tracking-api-b4jb.onrender.com/get_errors',
+      );
+      final response = await http.get(
+        uri,
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -69,9 +74,9 @@ class _ErrorsScreenState extends State<ErrorsScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Помилка з’єднання: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Помилка з’єднання: $e')));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -84,9 +89,14 @@ class _ErrorsScreenState extends State<ErrorsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Очистити журнал помилок?'),
-        content: const Text('Ця дія видалить усі записи про помилки. Ви впевнені?'),
+        content: const Text(
+          'Ця дія видалить усі записи про помилки. Ви впевнені?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Скасувати')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Скасувати'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -103,8 +113,13 @@ class _ErrorsScreenState extends State<ErrorsScreen> {
     final token = prefs.getString('token');
 
     try {
-      final uri = Uri.parse('https://tracking-api-b4jb.onrender.com/clear_errors');
-      final response = await http.delete(uri, headers: {'Authorization': 'Bearer $token'});
+      final uri = Uri.parse(
+        'https://tracking-api-b4jb.onrender.com/clear_errors',
+      );
+      final response = await http.delete(
+        uri,
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
       if (response.statusCode == 200) {
         setState(() => _errors.clear());
@@ -113,7 +128,9 @@ class _ErrorsScreenState extends State<ErrorsScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не вдалося очистити: ${response.statusCode}')),
+          SnackBar(
+            content: Text('Не вдалося очистити: ${response.statusCode}'),
+          ),
         );
       }
     } catch (_) {
@@ -134,7 +151,10 @@ class _ErrorsScreenState extends State<ErrorsScreen> {
         title: const Text('Видалити помилку?'),
         content: Text('ID: $id\nЦю помилку буде видалено з бази. Продовжити?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Скасувати')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Скасувати'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -150,17 +170,22 @@ class _ErrorsScreenState extends State<ErrorsScreen> {
     final token = prefs.getString('token');
 
     try {
-      final uri = Uri.parse('https://tracking-api-b4jb.onrender.com/delete_error/$id');
-      final res = await http.delete(uri, headers: {'Authorization': 'Bearer $token'});
+      final uri = Uri.parse(
+        'https://tracking-api-b4jb.onrender.com/delete_error/$id',
+      );
+      final res = await http.delete(
+        uri,
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
       if (res.statusCode == 200) {
         // Удаляем локально без полного рефреша
         setState(() {
           _errors.removeWhere((e) => e['id'] == id);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Помилку #$id видалено ✅')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Помилку #$id видалено ✅')));
       } else if (res.statusCode == 404) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Помилка не знайдена (404)')),
@@ -206,68 +231,75 @@ class _ErrorsScreenState extends State<ErrorsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errors.isEmpty
-              ? const Center(
-                  child: Text(
-                    'Журнал помилок порожній',
-                    style: TextStyle(fontSize: 18, color: Colors.black54),
+          ? const Center(
+              child: Text(
+                'Журнал помилок порожній',
+                style: TextStyle(fontSize: 18, color: Colors.black54),
+              ),
+            )
+          : ListView.builder(
+              itemCount: _errors.length,
+              itemBuilder: (context, index) {
+                final e = _errors[index];
+
+                final reason =
+                    e['error_message'] ??
+                    e['reason'] ??
+                    e['note'] ??
+                    e['message'] ??
+                    e['error'] ??
+                    'Причина не вказана';
+
+                final id = e['id'] is int
+                    ? e['id'] as int
+                    : int.tryParse('${e['id']}');
+
+                return Card(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
                   ),
-                )
-              : ListView.builder(
-                  itemCount: _errors.length,
-                  itemBuilder: (context, index) {
-                    final e = _errors[index];
-
-                    final reason = e['error_message'] ??
-                        e['reason'] ??
-                        e['note'] ??
-                        e['message'] ??
-                        e['error'] ??
-                        'Причина не вказана';
-
-                    final id = e['id'] is int
-                        ? e['id'] as int
-                        : int.tryParse('${e['id']}');
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      color: const Color(0xFFFFEBEE),
-                      child: InkWell(
-                        onTap: (_canClear && id != null)
-                            ? () => _deleteErrorById(id)
-                            : null,
-                        child: ListTile(
-                          leading: const Icon(Icons.error, color: Colors.redAccent),
-                          title: Text(
-                            reason,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.redAccent,
-                            ),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('📦 BoxID: ${e['boxid'] ?? '-'}'),
-                                Text('🚚 TTN: ${e['ttn'] ?? '-'}'),
-                                Text('👤 ${e['user_name'] ?? '-'}'),
-                                Text('🕓 ${_formatDate(e['datetime'] ?? '')}'),
-                              ],
-                            ),
-                          ),
-                          trailing: (_canClear && id != null)
-                              ? IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                  tooltip: 'Видалити цей запис',
-                                  onPressed: () => _deleteErrorById(id),
-                                )
-                              : null,
+                  color: const Color(0xFFFFEBEE),
+                  child: InkWell(
+                    onTap: (_canClear && id != null)
+                        ? () => _deleteErrorById(id)
+                        : null,
+                    child: ListTile(
+                      leading: const Icon(Icons.error, color: Colors.redAccent),
+                      title: Text(
+                        reason,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.redAccent,
                         ),
                       ),
-                    );
-                  },
-                ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('📦 BoxID: ${e['boxid'] ?? '-'}'),
+                            Text('🚚 TTN: ${e['ttn'] ?? '-'}'),
+                            Text('👤 ${e['user_name'] ?? '-'}'),
+                            Text('🕓 ${_formatDate(e['datetime'] ?? '')}'),
+                          ],
+                        ),
+                      ),
+                      trailing: (_canClear && id != null)
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.redAccent,
+                              ),
+                              tooltip: 'Видалити цей запис',
+                              onPressed: () => _deleteErrorById(id),
+                            )
+                          : null,
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

@@ -32,11 +32,14 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      final uri = Uri.parse(
-        'https://tracking-api-b4jb.onrender.com/login?password=$password',
-      );
+      final uri = Uri.https('tracking-api-b4jb.onrender.com', '/login', {
+        'password': password,
+      });
 
-      final response = await http.post(uri);
+      final response = await http.post(
+        uri,
+        headers: const {'Accept': 'application/json'},
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -44,14 +47,21 @@ class _LoginScreenState extends State<LoginScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', data['token']);
         await prefs.setInt('access_level', data['access_level']);
+        await prefs.setString('last_password', password);
 
         if (!mounted) return;
 
         Navigator.pushReplacementNamed(context, '/username');
       } else {
-        setState(() {
-          _errorMessage = 'Невірний пароль';
-        });
+        String message = 'Невірний пароль';
+        try {
+          final errorBody = json.decode(response.body);
+          if (errorBody is Map && errorBody['message'] is String) {
+            message = errorBody['message'];
+          }
+        } catch (_) {}
+
+        setState(() {});
       }
     } catch (e) {
       setState(() {
@@ -70,15 +80,15 @@ class _LoginScreenState extends State<LoginScreen> {
       // 🔹 Фон с градиентом
       body: Container(
         decoration: const BoxDecoration(
-  gradient: LinearGradient(
-    colors: [
-      Color(0xFF90caf9), // голубой сверху
-      Color(0xFF1565C0), // насыщенный синий внизу
-    ],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  ),
-),
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF90caf9), // голубой сверху
+              Color(0xFF1565C0), // насыщенный синий внизу
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
 
         child: Center(
           child: SingleChildScrollView(
@@ -91,8 +101,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   'assets/images/logo.png',
                   width: 200,
                   height: 200,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.qr_code_2, size: 100, color: Colors.white70),
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.qr_code_2,
+                    size: 100,
+                    color: Colors.white70,
+                  ),
                 ),
                 const SizedBox(height: 24),
 
